@@ -2,14 +2,52 @@ from typing import List, Dict, Any, Optional
 import pandas as pd
 import numpy as np
 from market_structure import find_swing_points
+from config import config
 
 
-def detect_fair_value_gaps(df: pd.DataFrame, min_gap_size: float = 0.3) -> List[Dict[str, Any]]:
+# ---------------------------------------------------------------------------
+# Symbol-aware thresholds
+# ---------------------------------------------------------------------------
+SYMBOL_THRESHOLDS: Dict[str, Dict[str, float]] = {
+    # Forex majors / minors — values in price units (e.g. 0.0040 = 40 pips)
+    "EURUSD": {"ob_displacement": 0.0040, "fvg_min_gap": 0.0003},
+    "GBPUSD": {"ob_displacement": 0.0050, "fvg_min_gap": 0.0004},
+    "USDJPY": {"ob_displacement": 0.40,   "fvg_min_gap": 0.030},
+    "USDCHF": {"ob_displacement": 0.0040, "fvg_min_gap": 0.0003},
+    "AUDUSD": {"ob_displacement": 0.0035, "fvg_min_gap": 0.0002},
+    "NZDUSD": {"ob_displacement": 0.0030, "fvg_min_gap": 0.0002},
+    "USDCAD": {"ob_displacement": 0.0040, "fvg_min_gap": 0.0003},
+    # Metals
+    "XAUUSD": {"ob_displacement": 4.00,   "fvg_min_gap": 0.30},
+    "XAGUSD": {"ob_displacement": 0.15,   "fvg_min_gap": 0.02},
+    # Crypto
+    "BTCUSD": {"ob_displacement": 150.0,  "fvg_min_gap": 10.0},
+    "ETHUSD": {"ob_displacement": 10.0,   "fvg_min_gap": 1.0},
+}
+
+
+def _get_thresholds() -> Dict[str, float]:
+    """Return displacement/gap thresholds for the currently configured symbol."""
+    sym = config.symbol.upper()
+    # Exact match first, then prefix scan, then safe default
+    if sym in SYMBOL_THRESHOLDS:
+        return SYMBOL_THRESHOLDS[sym]
+    for key, vals in SYMBOL_THRESHOLDS.items():
+        if sym.startswith(key[:3]):
+            return vals
+    # Default to forex-like (conservative)
+    return {"ob_displacement": 0.0040, "fvg_min_gap": 0.0003}
+
+
+def detect_fair_value_gaps(df: pd.DataFrame, min_gap_size: Optional[float] = None) -> List[Dict[str, Any]]:
     """
     Detects 3-candle Fair Value Gaps (FVG) / Imbalances.
     Bullish FVG: low of candle 3 > high of candle 1.
     Bearish FVG: high of candle 3 < low of candle 1.
     """
+    if min_gap_size is None:
+        min_gap_size = _get_thresholds()["fvg_min_gap"]
+
     fvgs = []
     if len(df) < 3:
         return fvgs
@@ -58,6 +96,7 @@ def detect_order_blocks(df: pd.DataFrame, lookback: int = 40) -> Dict[str, Any]:
 
     subset = df.iloc[-lookback:].reset_index(drop=True)
     n = len(subset)
+    ob_threshold = _get_thresholds()["ob_displacement"]
 
     bullish_ob = None
     bearish_ob = None
@@ -70,7 +109,7 @@ def detect_order_blocks(df: pd.DataFrame, lookback: int = 40) -> Dict[str, Any]:
         # Bullish OB Check: Bearish candle followed by strong bullish move
         if c_curr["close"] < c_curr["open"]:
             move = c_next2["close"] - c_curr["low"]
-            if move > 4.0:  # Significant $4+ displacement in Gold
+            if move > ob_threshold:  # Symbol-specific displacement threshold
                 bullish_ob = {
                     "high": round(float(c_curr["high"]), 2),
                     "low": round(float(c_curr["low"]), 2),
@@ -80,7 +119,7 @@ def detect_order_blocks(df: pd.DataFrame, lookback: int = 40) -> Dict[str, Any]:
         # Bearish OB Check: Bullish candle followed by strong bearish move
         if c_curr["close"] > c_curr["open"]:
             move = c_curr["high"] - c_next2["close"]
-            if move > 4.0:
+            if move > ob_threshold:
                 bearish_ob = {
                     "high": round(float(c_curr["high"]), 2),
                     "low": round(float(c_curr["low"]), 2),

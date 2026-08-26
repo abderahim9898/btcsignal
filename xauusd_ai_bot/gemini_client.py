@@ -7,7 +7,35 @@ from logger import logger
 from models import GeminiAnalysisResponse
 
 
-SYSTEM_PROMPT = """You are a master ICT (Inner Circle Trader) and Smart Money Concepts (SMC) quantitative analyst specializing strictly in XAUUSD (Gold/USD).
+def _asset_class(symbol: str) -> str:
+    """Detect broad asset class from symbol string."""
+    sym = symbol.upper()
+    if any(x in sym for x in ["XAU", "XAG", "GOLD", "SILVER"]):
+        return "metal"
+    if any(x in sym for x in ["BTC", "ETH", "LTC", "BNB", "XRP"]):
+        return "crypto"
+    return "forex"
+
+
+def build_system_prompt(symbol: str) -> str:
+    """Build a symbol-aware ICT/SMC system prompt."""
+    cls = _asset_class(symbol)
+    sym_upper = symbol.upper()
+
+    if cls == "metal":
+        asset_desc = f"{sym_upper} (Gold/USD)"
+        lot_note = "Account for Gold's wide spreads and $4+ displacement requirements for valid OBs."
+        pip_note = "Price moves are in USD per troy ounce. SL/TP distances should reflect ATR-based sizing."
+    elif cls == "crypto":
+        asset_desc = f"{sym_upper} (Cryptocurrency)"
+        lot_note = "Account for high volatility and wide ATR ranges typical of crypto markets."
+        pip_note = "Price moves are in USD. SL/TP distances should be wider to accommodate volatility."
+    else:  # forex
+        asset_desc = f"{sym_upper} (Forex Currency Pair)"
+        lot_note = "Account for tight spreads and pip-scale movements (0.0001 per pip for most pairs)."
+        pip_note = "All price levels are in the pair's native quote currency. SL/TP distances are measured in pips."
+
+    return f"""You are a master ICT (Inner Circle Trader) and Smart Money Concepts (SMC) quantitative analyst specializing in {asset_desc}.
 
 CRITICAL LANGUAGE & SCENARIO REQUIREMENT:
 - All 'reasoning', 'setup_type', 'market_structure', 'warnings', 'bullish_scenario', and 'bearish_scenario' MUST be written in clear, professional ARABIC (اللغة العربية الفصحى).
@@ -17,6 +45,10 @@ CRITICAL LANGUAGE & SCENARIO REQUIREMENT:
   3. 'bearish_scenario': Clear Arabic description of the Bearish ICT setup path & conditions.
   4. 'bearish_probability': Integer percentage probability for the Bearish scenario (e.g. 40).
   (Note: bullish_probability + bearish_probability MUST equal 100).
+
+ASSET CONTEXT:
+- {lot_note}
+- {pip_note}
 
 YOUR TRADING FRAMEWORK (ICT / SMC ONLY):
 1. MARKET STRUCTURE & SHIFT (MSS / CHOCH):
@@ -63,7 +95,7 @@ class GeminiClient:
             logger.error("Gemini API key is not configured. Cannot perform AI analysis.")
             return None
 
-        prompt = f"""Analyze the following real-time XAUUSD market snapshot and provide your structured technical trading analysis:
+        prompt = f"""Analyze the following real-time {config.symbol.upper()} market snapshot and provide your structured technical trading analysis:
 
 MARKET SNAPSHOT DATA:
 {json.dumps(market_context, indent=2)}
@@ -72,6 +104,8 @@ INSTRUCTIONS:
 Determine whether conditions justify a LONG, SHORT, or NO_TRADE setup based strictly on technical confluence.
 Return your evaluation in the required JSON format.
 """
+
+        system_prompt = build_system_prompt(config.symbol)
 
         # Model fallback candidate list
         candidate_models = [self.model_name, "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro"]
@@ -86,7 +120,7 @@ Return your evaluation in the required JSON format.
                         model=model,
                         contents=prompt,
                         config=types.GenerateContentConfig(
-                            system_instruction=SYSTEM_PROMPT,
+                            system_instruction=system_prompt,
                             response_mime_type="application/json",
                             response_schema=GeminiAnalysisResponse,
                             temperature=0.2,
