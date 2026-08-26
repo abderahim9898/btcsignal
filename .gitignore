@@ -1,0 +1,24 @@
+# Secrets & Environment Variables
+.env
+xauusd_ai_bot/.env
+
+# Databases & Dynamic Logs
+*.db
+xauusd_ai.db
+xauusd_ai_bot/logs/*
+!xauusd_ai_bot/logs/.gitkeep
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
