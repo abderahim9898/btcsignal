@@ -1,4 +1,4 @@
-name: EURUSD AI Trading Analysis Cycle
+name: BTCUSD AI Trading Analysis Cycle
 
 on:
   schedule:
@@ -28,14 +28,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: xauusd_ai.db
-          key: eurusd-db-${{ github.run_id }}
+          key: btcusd-db-${{ github.run_id }}
           restore-keys: |
-            eurusd-db-
+            btcusd-db-
 
       - name: Run Market Analysis Cycle
         env:
           BIQUOTE_BASE_URL: https://biquote.io/api
-          SYMBOL: eurusd
+          SYMBOL: btcusd
           TIMEFRAME: 5m
           CANDLE_COUNT: 400
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
