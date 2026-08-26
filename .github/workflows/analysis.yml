@@ -47,4 +47,5 @@ jobs:
           WORK_END_HOUR: 24
           ONLY_SEND_TRADE_SIGNALS: 'true'
         run: |
-          python xauusd_ai_bot/main.py --once --ignore-schedule --only-signals
+          python xauusd_ai_bot/main.py --once --ignore-schedule --ignore-stale --only-signals
+
