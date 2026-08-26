@@ -147,7 +147,8 @@ def generate_candlestick_chart(
         # Styling & Layout
         sig_str = f"{analysis.signal} ({analysis.confidence}%)" if analysis else "SNAPSHOT"
         c_time = analysis.candle_time if analysis else str(subset.iloc[-1]["timestamp"])
-        ax.set_title(f"XAUUSD (M5) ICT/SMC Analysis - {sig_str} | {c_time}", fontsize=10.5, fontweight='bold', pad=10, color='#eceff1')
+        sym_str = config.symbol.upper()
+        ax.set_title(f"{sym_str} ({config.timeframe}) ICT/SMC Analysis - {sig_str} | {c_time}", fontsize=10.5, fontweight='bold', pad=10, color='#eceff1')
         ax.set_ylabel("Price (USD)", fontsize=8.5, color='#b0bec5')
         ax.grid(True, linestyle=':', alpha=0.15)
         ax.legend(loc='upper left', fontsize=7.5, framealpha=0.4)

@@ -35,7 +35,7 @@ jobs:
       - name: Run Market Analysis Cycle
         env:
           BIQUOTE_BASE_URL: https://biquote.io/api
-          SYMBOL: XAUUSD
+          SYMBOL: btcusd
           TIMEFRAME: 5m
           CANDLE_COUNT: 400
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
