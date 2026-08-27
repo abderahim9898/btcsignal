@@ -14,6 +14,7 @@ from support_resistance import find_support_resistance_zones
 from smc_ict import detect_fair_value_gaps, detect_order_blocks, detect_liquidity_sweeps, calculate_premium_discount
 from market_structure import find_swing_points
 from logger import logger
+from config import config
 
 
 def generate_candlestick_chart(
