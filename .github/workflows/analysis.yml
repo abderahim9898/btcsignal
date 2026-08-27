@@ -48,5 +48,5 @@ jobs:
           ONLY_SEND_TRADE_SIGNALS: 'true'
           MIN_CONFIDENCE: '55'
         run: |
-          python xauusd_ai_bot/main.py --once --ignore-schedule --ignore-stale --only-signals
+          python xauusd_ai_bot/main.py --once --ignore-schedule --ignore-stale
 
